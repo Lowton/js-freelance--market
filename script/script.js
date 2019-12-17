@@ -33,18 +33,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     formCustomer.addEventListener('submit', (event) => {
+		
         event.preventDefault();
         const arr = Array.from(formCustomer.elements);
         const obj = {};
+		
         arr.filter(el => 
             (el.tagName === 'INPUT' && el.type !== 'radio') ||
             (el.type === 'radio' && el.checked) ||
-            (el.tagName === 'TEXTAREA')
-        ).forEach(el => {
+            (el.tagName === 'TEXTAREA'))
+        .forEach(el => {
             obj[el.name] = el.value;
         });
-        arr.filter(el => el.type !== 'radio').forEach(el => el.value = '');
+		
         orders.push(obj);
-        console.log('orders: ', orders);
+		
+		formCustomer.reset();
     });
 });
