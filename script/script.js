@@ -111,7 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currencyBlock.className = 'currency_img';
         currencyBlock.classList.add(currency);
         countBlock.textContent = amount;
-        callBlock && (callBlock.href = `tel: ${phone}`);        
+        if (callBlock) {
+            callBlock.href = `tel: ${phone}`;
+            callBlock.closest('.btn').style.display = phone ? 'inline-block' : 'none';
+        }        
         
         modal.style.display = 'flex';
 
