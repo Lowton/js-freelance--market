@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formCustomer = document.getElementById('form-customer');
 
-    const orders = [];
+    const orders = JSON.parse(localStorage.getItem('orders')) || [];
+    console.log('orders: ', typeof orders);
     const ordersTable = document.getElementById('orders');
 
     const readOrderModal = document.getElementById('order_read');
@@ -22,41 +23,99 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseButton = document.querySelector('.close');
 
     // functions
+    const toStorege = () => {
+        localStorage.setItem('orders', JSON.stringify(orders));
+    };
+
+    const countableName = (count) => {
+        if ((count % 10 === 1) && (count%100 !== 11)) {return 'день';}
+        if (((count % 10 > 1) && (count % 10 < 5)) && ((count % 100 < 10) || (count % 100 > 15))) {return 'дня';}
+        return 'дней';
+    };
+
+    const calcDeadline = (deadline) => {
+        const dayDiff = Math.floor((new Date(deadline) - Date.now())/(1000 * 60 * 60 * 24));
+        if (dayDiff === 0) {return 'Сегодня!';}
+        if (dayDiff < 0) {return 'Просрочено!!!';}
+        return `через ${dayDiff} ${countableName(dayDiff)}`;
+    }
+
     const renderOrders = () => {
         ordersTable.textContent = '';
         orders.forEach((order, i) => {
             ordersTable.innerHTML += `
-            <tr class="order" data-order-number="${i}">
+            <tr class="order ${order.active ? 'taken' : ''}" data-order-number="${i}">
                 <td>${i+1}</td>
                 <td>${order.title}</td>
                 <td class="${order.currency}"></td>
-                <td>${order.deadline}</td>
+                <td>${calcDeadline(order.deadline)}</td>
             </tr>`;
         });
     };
 
+    const handlerModal = (event) => {
+        const target = event.target;
+        const modal = target.closest('.order-modal');
+        const order = orders[modal.orderNumber];
+
+        const baseActions = () => {
+            modal.style.display = 'none';
+            renderOrders();
+            toStorege();
+        };
+        
+        if (target.closest('.close') || target === modal) {
+            modal.style.display = 'none';
+        }
+
+        if (target.classList.contains('get-order')) {
+            order.active = true;
+            baseActions();
+        }
+
+        if (target.id === 'capitulation') {
+            order.active = false;
+            baseActions();
+        }
+
+        if (target.id === 'ready') {
+            orders.splice(orders.indexOf(order), 1);
+            baseActions();
+        }        
+    };
+
     const openModal = (orderNumber) => {
         const order = orders[orderNumber];
-        const modal = order.active ? activeOrderModal : readOrderModal;
-        const titleBlock = document.querySelector('.modal-title');
-        const firstNameBlock = document.querySelector('.firstName');
-        const emailBlock = document.querySelector('.email');
-        const descriptionBlock = document.querySelector('.description');
-        const deadlineBlock = document.querySelector('.deadline');
-        const currencyBlock = document.querySelector('.currency_img');
-        const countBlock = document.querySelector('.count');
-        const callBlock = document.querySelector('.phone');
-
-        titleBlock.textContent = order.title;
-        firstNameBlock.textContent = order.firstName;
-        emailBlock.textContent = order.email;
-        descriptionBlock.textContent = order.description;
-        deadlineBlock.textContent = order.deadline;
-        currencyBlock.className = order.currency;
-        countBlock.textContent = order.amount;
-        callBlock.href = `tel: ${order.phone}`;        
         
-        modal.style.display = 'block';
+        const { title, firstName, email, phone, description, amount, currency, deadline, active = false } = order;
+
+        const modal = active ? activeOrderModal : readOrderModal;
+
+        const titleBlock = modal.querySelector('.modal-title');
+        const firstNameBlock = modal.querySelector('.firstName');
+        const emailBlock = modal.querySelector('.email');
+        const descriptionBlock = modal.querySelector('.description');
+        const deadlineBlock = modal.querySelector('.deadline');
+        const currencyBlock = modal.querySelector('.currency_img');
+        const countBlock = modal.querySelector('.count');
+        const callBlock = modal.querySelector('.phone');
+
+        modal.orderNumber = orderNumber;
+
+        titleBlock.textContent = title;
+        firstNameBlock.textContent = firstName;
+        emailBlock.textContent = email;
+        emailBlock.href= `mailto:${email}`;
+        descriptionBlock.textContent = description;
+        deadlineBlock.textContent = calcDeadline(deadline);
+        currencyBlock.className = 'currency_img';
+        currencyBlock.classList.add(currency);
+        countBlock.textContent = amount;
+        callBlock && (callBlock.href = `tel: ${phone}`);        
+        
+        modal.style.display = 'flex';
+
+        modal.addEventListener('click', handlerModal);
     };
 
     // events
@@ -107,8 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         orders.push(obj);
+        toStorege();
         formCustomer.reset();
     });
-
-
 });
