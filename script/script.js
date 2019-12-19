@@ -22,22 +22,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const modalCloseButton = document.querySelector('.close');
 
+    const headTable = document.getElementById('headTable');
+
     // functions
     const toStorege = () => {
         localStorage.setItem('orders', JSON.stringify(orders));
     };
 
-    const countableName = (count) => {
-        if ((count % 10 === 1) && (count%100 !== 11)) {return 'день';}
-        if (((count % 10 > 1) && (count % 10 < 5)) && ((count % 100 < 10) || (count % 100 > 15))) {return 'дня';}
-        return 'дней';
+    const countableName = (count, nameArray) => {        
+        return count + ' ' + nameArray[
+            ((count % 100 > 4) && (count % 100 < 20)) 
+                ? 2
+                : [2, 0, 1, 1, 1, 2][
+                    (count % 10 < 5)
+                        ? count % 10
+                        : 5
+            ]
+        ];
     };
 
-    const calcDeadline = (deadline) => {
-        const dayDiff = Math.floor((new Date(deadline) - Date.now())/(1000 * 60 * 60 * 24));
-        if (dayDiff === 0) {return 'Сегодня!';}
-        if (dayDiff < 0) {return 'Просрочено!!!';}
-        return `через ${dayDiff} ${countableName(dayDiff)}`;
+    const calcDeadline = (date) => {
+        const hourDiff = (new Date(date) - Date.now())/(1000 * 60 * 60);
+        if (hourDiff === 0) {return 'Сейчас!';}
+        if (hourDiff < 0) {return 'Просрочено!!!';}
+        if (hourDiff / 24 > 2) {
+            return countableName(Math.floor(hourDiff / 24),['день', 'дня', 'дней']);
+        }
+        return countableName(Math.floor(hourDiff),['час', 'часа', 'часов']);
     }
 
     const renderOrders = () => {
@@ -121,7 +132,30 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.addEventListener('click', handlerModal);
     };
 
+    const sortOrder = (arr, property) => {
+        arr.sort((a,b) => a[property] > b[property] ? 1 : -1);
+    };
+
     // events
+    headTable.addEventListener('click', (event) => {
+        const target = event.target;
+
+        if (target.classList.contains('head-sort')) {
+            if (target.id === 'taskSort') {
+                sortOrder(orders, 'title');
+            }
+            if (target.id === 'currencySort') {
+                sortOrder(orders, 'currency');
+            }
+            if (target.id === 'deadlineSort') {
+                sortOrder(orders, 'deadline');
+            }
+        }
+        
+        toStorege();
+        renderOrders();
+    });
+
     modalCloseButton.addEventListener('click', () => {
         activeOrderModal.style.display = 'none';
         readOrderModal.style.display = 'none';
@@ -137,6 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     customer.addEventListener('click', () => {
         blockChoice.style.display = 'none';
+        const minDate = new Date().toISOString().substring(0,10);
+        document.getElementById('deadline').min = minDate;
         blockCustomer.style.display = 'block';
         btnExit.style.display = 'block';
     });
